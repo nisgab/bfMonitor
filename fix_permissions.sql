@@ -1,20 +1,7 @@
--- Database setup for Breastfeeding Monitor Application
--- Run this in your Supabase SQL Editor
+-- Fix RLS Policies for Shared Log View
+-- Run this in your Supabase SQL Editor if you already have the feeding_sessions table
 
--- Create the feeding_sessions table
-CREATE TABLE feeding_sessions (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    side VARCHAR(10) NOT NULL CHECK (side IN ('left', 'right')),
-    duration INTEGER NOT NULL, -- Duration in seconds
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable Row Level Security
-ALTER TABLE feeding_sessions ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policy if it exists
+-- Drop existing policies
 DROP POLICY IF EXISTS "Users can access their own feeding sessions" ON feeding_sessions;
 DROP POLICY IF EXISTS "Users can access their own stats" ON feeding_sessions;
 
@@ -29,11 +16,11 @@ CREATE POLICY "Anonymous users can read sessions for sharing" ON feeding_session
     FOR SELECT 
     USING (auth.role() = 'anon');
 
--- Create indexes for better performance
+-- Create indexes if they don't exist
 CREATE INDEX IF NOT EXISTS idx_feeding_sessions_user_id ON feeding_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_feeding_sessions_created_at ON feeding_sessions(created_at DESC);
 
--- Optional: Create a view for recent sessions (last 3 sessions per user)
+-- Create the recent_feeding_sessions view (if it doesn't exist)
 CREATE OR REPLACE VIEW recent_feeding_sessions AS
 SELECT *
 FROM (
@@ -46,7 +33,7 @@ WHERE rn <= 3;
 -- Grant permissions for the view
 GRANT SELECT ON recent_feeding_sessions TO authenticated, anon;
 
--- Create a function to get user's feeding statistics
+-- Create the get_feeding_stats function (if it doesn't exist)
 CREATE OR REPLACE FUNCTION get_feeding_stats(user_uuid UUID)
 RETURNS TABLE (
     total_sessions INTEGER,
@@ -74,16 +61,4 @@ END;
 $$;
 
 -- Grant execute permissions on the function
-GRANT EXECUTE ON FUNCTION get_feeding_stats(UUID) TO authenticated, anon;
-
--- Add some useful comments
-COMMENT ON TABLE feeding_sessions IS 'Stores breastfeeding session data for each user';
-COMMENT ON COLUMN feeding_sessions.side IS 'Which side was used for feeding: left or right';
-COMMENT ON COLUMN feeding_sessions.duration IS 'Duration of feeding session in seconds';
-COMMENT ON COLUMN feeding_sessions.start_time IS 'When the feeding session started';
-COMMENT ON COLUMN feeding_sessions.created_at IS 'When the record was created in the database';
-
--- Security notes:
--- 1. Authenticated users can only access their own data (full CRUD)
--- 2. Anonymous users can read all data (needed for shared links)
--- 3. This allows sharing while maintaining user data ownership 
+GRANT EXECUTE ON FUNCTION get_feeding_stats(UUID) TO authenticated, anon; 

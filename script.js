@@ -6,10 +6,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Global Variables
-let timer = null;
-let startTime = null;
-let elapsedTime = 0;
-let isRunning = false;
 let currentUser = null;
 let sessions = [];
 let sharedUserId = null;
@@ -26,10 +22,8 @@ const showSignupBtn = document.getElementById('show-signup');
 const showLoginBtn = document.getElementById('show-login');
 const logoutBtn = document.getElementById('logout-btn');
 const backToLoginBtn = document.getElementById('back-to-login-btn');
-const startBtn = document.getElementById('start-btn');
-const stopBtn = document.getElementById('stop-btn');
-const timerDisplay = document.getElementById('timer');
-const sideRadios = document.querySelectorAll('input[name="side"]');
+const leftBtn = document.getElementById('left-btn');
+const rightBtn = document.getElementById('right-btn');
 const sessionsListEl = document.getElementById('sessions-list');
 const sharedSessionsListEl = document.getElementById('shared-sessions-list');
 const shareBtn = document.getElementById('share-btn');
@@ -41,8 +35,9 @@ const copyLinkBtn = document.getElementById('copy-link-btn');
 const closeModal = document.querySelector('.close');
 const sharedInfoEl = document.getElementById('shared-info');
 const totalSessionsEl = document.getElementById('total-sessions');
-const totalDurationEl = document.getElementById('total-duration');
 const lastSessionEl = document.getElementById('last-session');
+const leftCountEl = document.getElementById('left-count');
+const rightCountEl = document.getElementById('right-count');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
@@ -94,8 +89,20 @@ async function signup(email, password) {
 
         if (error) throw error;
 
-        alert('נרשמת בהצלחה! בדוק את האימייל שלך לאישור החשבון.');
-        showLoginScreen();
+        // If signup is successful and user is immediately available, log them in
+        if (data.user && !data.user.email_confirmed_at) {
+            alert('נרשמת בהצלחה! מתחבר אותך אוטומטית...');
+            // Try to log in immediately
+            await login(email, password);
+        } else if (data.user) {
+            currentUser = data.user;
+            await loadSessions();
+            showMainScreen();
+            alert('נרשמת והתחברת בהצלחה!');
+        } else {
+            alert('נרשמת בהצלחה! אנא התחבר עם הפרטים שלך.');
+            showLoginScreen();
+        }
     } catch (error) {
         alert('שגיאה בהרשמה: ' + error.message);
     }
@@ -143,61 +150,22 @@ function showSharedScreen() {
     sharedScreen.classList.remove('hidden');
 }
 
-// Timer Functions
-function startTimer() {
-    if (!isRunning) {
-        startTime = Date.now() - elapsedTime;
-        isRunning = true;
-        startBtn.classList.add('hidden');
-        stopBtn.classList.remove('hidden');
-
-        timer = setInterval(() => {
-            elapsedTime = Date.now() - startTime;
-            updateTimerDisplay();
-        }, 1000);
-    }
-}
-
-function stopTimer() {
-    if (isRunning) {
-        clearInterval(timer);
-        isRunning = false;
-        startBtn.classList.remove('hidden');
-        stopBtn.classList.add('hidden');
-
-        // Save session
-        saveSession();
-
-        // Reset timer
-        elapsedTime = 0;
-        updateTimerDisplay();
-    }
-}
-
-function updateTimerDisplay() {
-    const totalSeconds = Math.floor(elapsedTime / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    timerDisplay.textContent =
-        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-// Session Management Functions
-async function saveSession() {
-    const selectedSide = document.querySelector('input[name="side"]:checked').value;
-    const duration = Math.floor(elapsedTime / 1000);
-
-    const session = {
-        user_id: currentUser.id,
-        side: selectedSide,
-        duration: duration,
-        start_time: new Date(startTime).toISOString(),
-        created_at: new Date().toISOString()
-    };
-
+// Feeding Functions
+async function recordFeeding(side) {
     try {
+        // Add visual feedback
+        const button = side === 'left' ? leftBtn : rightBtn;
+        button.disabled = true;
+        button.style.opacity = '0.7';
+
+        const session = {
+            user_id: currentUser.id,
+            side: side,
+            duration: 0, // Set to 0 since we're not tracking time
+            start_time: new Date().toISOString(),
+            created_at: new Date().toISOString()
+        };
+
         const { data, error } = await supabaseClient
             .from('feeding_sessions')
             .insert([session])
@@ -207,12 +175,31 @@ async function saveSession() {
 
         sessions.unshift(data[0]);
         updateSessionsList();
+
+        // Show success feedback
+        const originalText = button.querySelector('.side-text').textContent;
+        button.querySelector('.side-text').textContent = 'נרשם!';
+        button.style.background = '#4caf50';
+
+        setTimeout(() => {
+            button.querySelector('.side-text').textContent = originalText;
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.background = '';
+        }, 1500);
+
     } catch (error) {
-        console.error('Error saving session:', error);
-        alert('שגיאה בשמירת הפעילות');
+        console.error('Error saving feeding:', error);
+        alert('שגיאה ברישום ההנקה');
+
+        // Reset button
+        const button = side === 'left' ? leftBtn : rightBtn;
+        button.disabled = false;
+        button.style.opacity = '1';
     }
 }
 
+// Session Management Functions
 async function loadSessions() {
     try {
         const { data, error } = await supabaseClient
@@ -240,13 +227,11 @@ function updateSessionsList() {
     sessionsListEl.innerHTML = sessions.map(session => {
         const date = new Date(session.created_at);
         const side = session.side === 'right' ? 'ימין' : 'שמאל';
-        const duration = formatDuration(session.duration);
 
         return `
             <div class="session-item">
                 <div class="session-side">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
-                <div class="session-duration">${duration}</div>
             </div>
         `;
     }).join('');
@@ -257,6 +242,14 @@ async function loadSharedView() {
     try {
         showSharedScreen();
 
+        // Add debug info for mobile troubleshooting
+        console.log('Loading shared view for user:', sharedUserId);
+        console.log('User agent:', navigator.userAgent);
+        console.log('Supabase URL:', SUPABASE_URL);
+
+        // Update UI to show loading state
+        sharedInfoEl.textContent = 'טוען נתונים...';
+
         // Load shared sessions (last 10 sessions)
         const { data: sessionsData, error: sessionsError } = await supabaseClient
             .from('feeding_sessions')
@@ -265,13 +258,20 @@ async function loadSharedView() {
             .order('created_at', { ascending: false })
             .limit(10);
 
-        if (sessionsError) throw sessionsError;
+        console.log('Supabase response:', { data: sessionsData, error: sessionsError });
+
+        if (sessionsError) {
+            console.error('Supabase error:', sessionsError);
+            throw sessionsError;
+        }
 
         if (!sessionsData || sessionsData.length === 0) {
+            console.log('No sessions found for user:', sharedUserId);
             showSharedError('לא נמצאו נתונים', 'המשתמש לא קיים או שלא בוצעו הנקות עדיין');
             return;
         }
 
+        console.log('Successfully loaded', sessionsData.length, 'sessions');
         sharedSessions = sessionsData;
         updateSharedSessionsList();
         updateSharedStats();
@@ -279,7 +279,15 @@ async function loadSharedView() {
 
     } catch (error) {
         console.error('Error loading shared view:', error);
-        showSharedError('שגיאה בטעינת הנתונים', error.message);
+
+        // Show more detailed error for debugging
+        const errorMessage = error.message || 'שגיאה לא ידועה';
+        const debugInfo = `Debug info: ${error.name || 'Unknown'} - ${errorMessage}`;
+
+        showSharedError('שגיאה בטעינת הנתונים', `${errorMessage}\n\n${debugInfo}`);
+
+        // Also update the info element with debug information
+        sharedInfoEl.textContent = `שגיאה: ${errorMessage}`;
     }
 }
 
@@ -292,13 +300,11 @@ function updateSharedSessionsList() {
     sharedSessionsListEl.innerHTML = sharedSessions.map(session => {
         const date = new Date(session.created_at);
         const side = session.side === 'right' ? 'ימין' : 'שמאל';
-        const duration = formatDuration(session.duration);
 
         return `
             <div class="session-item">
                 <div class="session-side">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
-                <div class="session-duration">${duration}</div>
             </div>
         `;
     }).join('');
@@ -306,14 +312,13 @@ function updateSharedSessionsList() {
 
 function updateSharedStats() {
     const totalSessions = sharedSessions.length;
-    const totalDurationSeconds = sharedSessions.reduce((sum, session) => sum + session.duration, 0);
-    const totalDurationMinutes = Math.floor(totalDurationSeconds / 60);
+    const leftSessions = sharedSessions.filter(s => s.side === 'left').length;
+    const rightSessions = sharedSessions.filter(s => s.side === 'right').length;
     const lastSession = sharedSessions.length > 0 ? new Date(sharedSessions[0].created_at) : null;
 
     totalSessionsEl.textContent = totalSessions;
-    totalDurationEl.textContent = totalDurationMinutes > 60 ?
-        `${Math.floor(totalDurationMinutes / 60)}:${(totalDurationMinutes % 60).toString().padStart(2, '0')} שעות` :
-        `${totalDurationMinutes} דקות`;
+    leftCountEl.textContent = leftSessions;
+    rightCountEl.textContent = rightSessions;
     lastSessionEl.textContent = lastSession ? lastSession.toLocaleDateString('he-IL') : 'אין נתונים';
 }
 
@@ -367,12 +372,11 @@ async function exportToCSV() {
             return;
         }
 
-        const csvHeaders = ['תאריך', 'צד', 'משך (דקות)', 'זמן התחלה'];
+        const csvHeaders = ['תאריך', 'צד', 'זמן'];
         const csvData = data.map(session => [
             new Date(session.created_at).toLocaleDateString('he-IL'),
             session.side === 'right' ? 'ימין' : 'שמאל',
-            Math.floor(session.duration / 60),
-            new Date(session.start_time).toLocaleTimeString('he-IL')
+            new Date(session.created_at).toLocaleTimeString('he-IL')
         ]);
 
         const csvContent = [csvHeaders, ...csvData]
@@ -397,12 +401,11 @@ async function exportSharedToCSV() {
     }
 
     try {
-        const csvHeaders = ['תאריך', 'צד', 'משך (דקות)', 'זמן התחלה'];
+        const csvHeaders = ['תאריך', 'צד', 'זמן'];
         const csvData = sharedSessions.map(session => [
             new Date(session.created_at).toLocaleDateString('he-IL'),
             session.side === 'right' ? 'ימין' : 'שמאל',
-            Math.floor(session.duration / 60),
-            new Date(session.start_time).toLocaleTimeString('he-IL')
+            new Date(session.created_at).toLocaleTimeString('he-IL')
         ]);
 
         const csvContent = [csvHeaders, ...csvData]
@@ -417,18 +420,6 @@ async function exportSharedToCSV() {
     } catch (error) {
         console.error('Error exporting shared CSV:', error);
         alert('שגיאה בייצוא הנתונים');
-    }
-}
-
-function formatDuration(seconds) {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
-
-    if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    } else {
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 }
 
@@ -493,8 +484,8 @@ showLoginBtn.addEventListener('click', (e) => {
 logoutBtn.addEventListener('click', logout);
 backToLoginBtn.addEventListener('click', goBackToLogin);
 
-startBtn.addEventListener('click', startTimer);
-stopBtn.addEventListener('click', stopTimer);
+leftBtn.addEventListener('click', () => recordFeeding('left'));
+rightBtn.addEventListener('click', () => recordFeeding('right'));
 
 shareBtn.addEventListener('click', shareLog);
 exportBtn.addEventListener('click', exportToCSV);
@@ -513,7 +504,4 @@ window.addEventListener('click', (e) => {
         shareModal.classList.add('hidden');
         shareModal.classList.remove('show');
     }
-});
-
-// Initialize timer display
-updateTimerDisplay(); 
+}); 

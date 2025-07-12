@@ -46,30 +46,21 @@
         <div id="main-screen" class="screen hidden">
             <header>
                 <h1>מוניטור הנקה</h1>
-                <button id="logout-btn" class="logout-btn">התנתק</button>
             </header>
 
             <main>
-                <!-- Timer Section -->
-                <div class="timer-section">
-                    <h2>הנקה נוכחית</h2>
-                    <div class="side-selection">
-                        <label>
-                            <input type="radio" name="side" value="right" checked>
-                            <span class="side-btn">ימין</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="side" value="left">
-                            <span class="side-btn">שמאל</span>
-                        </label>
-                    </div>
-
-                    <div class="timer-display">
-                        <div id="timer">00:00:00</div>
-                        <div class="timer-controls">
-                            <button id="start-btn" class="timer-btn start">התחל</button>
-                            <button id="stop-btn" class="timer-btn stop hidden">עצור</button>
-                        </div>
+                <!-- Quick Feeding Section -->
+                <div class="feeding-section">
+                    <h2>רשום הנקה</h2>
+                    <div class="feeding-buttons">
+                        <button id="left-btn" class="feeding-btn left">
+                            <span class="side-text">הנקה - שמאל</span>
+                            <span class="time-text">עכשיו</span>
+                        </button>
+                        <button id="right-btn" class="feeding-btn right">
+                            <span class="side-text">הנקה - ימין</span>
+                            <span class="time-text">עכשיו</span>
+                        </button>
                     </div>
                 </div>
 
@@ -86,6 +77,11 @@
                     <button id="share-btn" class="action-btn">שתף יומן</button>
                     <button id="export-btn" class="action-btn">ייצא CSV</button>
                 </div>
+
+                <!-- Logout Button at Bottom -->
+                <div class="bottom-section">
+                    <button id="logout-btn" class="logout-btn-bottom">התנתק</button>
+                </div>
             </main>
         </div>
 
@@ -93,7 +89,6 @@
         <div id="shared-screen" class="screen hidden">
             <header>
                 <h1>יומן הנקה משותף</h1>
-                <button id="back-to-login-btn" class="logout-btn">התחבר לחשבון שלי</button>
             </header>
 
             <main>
@@ -120,12 +115,16 @@
                             <span id="total-sessions" class="stat-value">-</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">סה"כ זמן:</span>
-                            <span id="total-duration" class="stat-value">-</span>
-                        </div>
-                        <div class="stat-item">
                             <span class="stat-label">הנקה אחרונה:</span>
                             <span id="last-session" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">צד שמאל:</span>
+                            <span id="left-count" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">צד ימין:</span>
+                            <span id="right-count" class="stat-value">-</span>
                         </div>
                     </div>
                 </div>
@@ -133,6 +132,11 @@
                 <!-- Share Actions -->
                 <div class="action-buttons">
                     <button id="export-shared-btn" class="action-btn">ייצא CSV</button>
+                </div>
+
+                <!-- Back Button at Bottom -->
+                <div class="bottom-section">
+                    <button id="back-to-login-btn" class="logout-btn-bottom">התחבר לחשבון שלי</button>
                 </div>
             </main>
         </div>

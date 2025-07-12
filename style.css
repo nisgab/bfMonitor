@@ -95,9 +95,7 @@ header {
     padding: 15px 20px;
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    text-align: center;
     margin-bottom: 20px;
 }
 
@@ -106,23 +104,8 @@ header h1 {
     font-size: 20px;
 }
 
-.logout-btn {
-    background: #ff6b6b;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.3s;
-}
-
-.logout-btn:hover {
-    background: #ff5252;
-}
-
-/* Timer Section */
-.timer-section {
+/* Feeding Section */
+.feeding-section {
     background: white;
     padding: 25px;
     border-radius: 15px;
@@ -131,87 +114,64 @@ header h1 {
     text-align: center;
 }
 
-.timer-section h2 {
+.feeding-section h2 {
     color: #333;
     margin-bottom: 20px;
     font-size: 18px;
 }
 
-.side-selection {
+.feeding-buttons {
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 25px;
-}
-
-.side-selection label {
-    cursor: pointer;
-}
-
-.side-selection input[type="radio"] {
-    display: none;
-}
-
-.side-btn {
-    display: inline-block;
-    padding: 12px 24px;
-    background: #f0f0f0;
-    border: 2px solid #ddd;
-    border-radius: 25px;
-    transition: all 0.3s;
-    font-weight: 500;
-}
-
-.side-selection input[type="radio"]:checked + .side-btn {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
-}
-
-.timer-display {
-    margin-bottom: 20px;
-}
-
-#timer {
-    font-size: 48px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
-    font-family: monospace;
-}
-
-.timer-controls {
-    display: flex;
-    justify-content: center;
+    flex-direction: row;
     gap: 15px;
 }
 
-.timer-btn {
-    padding: 12px 30px;
+.feeding-btn {
+    flex: 1;
+    padding: 20px;
     border: none;
-    border-radius: 25px;
-    font-size: 16px;
+    border-radius: 15px;
+    font-size: 18px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    font-weight: 500;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.timer-btn.start {
-    background: #4caf50;
+.feeding-btn.left {
+    background: linear-gradient(135deg, #4caf50, #45a049);
     color: white;
 }
 
-.timer-btn.start:hover {
-    background: #45a049;
+.feeding-btn.left:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-.timer-btn.stop {
-    background: #ff6b6b;
+.feeding-btn.right {
+    background: linear-gradient(135deg, #2196f3, #1976d2);
     color: white;
 }
 
-.timer-btn.stop:hover {
-    background: #ff5252;
+.feeding-btn.right:hover {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.side-text {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.time-text {
+    font-size: 14px;
+    opacity: 0.9;
 }
 
 /* Recent Sessions */
@@ -251,11 +211,6 @@ header h1 {
 .session-time {
     color: #666;
     font-size: 14px;
-}
-
-.session-duration {
-    color: #333;
-    font-weight: 500;
 }
 
 .no-sessions {
@@ -377,6 +332,28 @@ header h1 {
     cursor: not-allowed;
 }
 
+/* Bottom Section */
+.bottom-section {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.logout-btn-bottom {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s;
+    margin-bottom: 20px;
+}
+
+.logout-btn-bottom:hover {
+    background: #ff5252;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -462,17 +439,9 @@ header h1 {
         padding: 10px;
     }
     
-    #timer {
-        font-size: 36px;
-    }
-    
-    .timer-controls {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .timer-btn {
-        width: 100%;
+    .feeding-btn {
+        padding: 18px;
+        font-size: 16px;
     }
     
     .action-buttons {
