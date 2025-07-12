@@ -10,6 +10,7 @@ let currentUser = null;
 let sessions = [];
 let sharedUserId = null;
 let sharedSessions = [];
+let showingAllSessions = false;
 
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
@@ -25,14 +26,11 @@ const backToLoginBtn = document.getElementById('back-to-login-btn');
 const leftBtn = document.getElementById('left-btn');
 const rightBtn = document.getElementById('right-btn');
 const sessionsListEl = document.getElementById('sessions-list');
+const sessionsTitleEl = document.getElementById('sessions-title');
 const sharedSessionsListEl = document.getElementById('shared-sessions-list');
-const shareBtn = document.getElementById('share-btn');
+const showAllBtn = document.getElementById('show-all-btn');
 const exportBtn = document.getElementById('export-btn');
 const exportSharedBtn = document.getElementById('export-shared-btn');
-const shareModal = document.getElementById('share-modal');
-const shareLink = document.getElementById('share-link');
-const copyLinkBtn = document.getElementById('copy-link-btn');
-const closeModal = document.querySelector('.close');
 const sharedInfoEl = document.getElementById('shared-info');
 const totalSessionsEl = document.getElementById('total-sessions');
 const lastSessionEl = document.getElementById('last-session');
@@ -174,6 +172,14 @@ async function recordFeeding(side) {
         if (error) throw error;
 
         sessions.unshift(data[0]);
+
+        // Reset to showing recent sessions to see the new feeding
+        if (showingAllSessions) {
+            showingAllSessions = false;
+            showAllBtn.textContent = 'הצג היסטוריה מלאה';
+            sessionsTitleEl.textContent = 'הנקות אחרונות';
+        }
+
         updateSessionsList();
 
         // Show success feedback
@@ -200,14 +206,19 @@ async function recordFeeding(side) {
 }
 
 // Session Management Functions
-async function loadSessions() {
+async function loadSessions(loadAll = false) {
     try {
-        const { data, error } = await supabaseClient
+        const query = supabaseClient
             .from('feeding_sessions')
             .select('*')
             .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false })
-            .limit(3);
+            .order('created_at', { ascending: false });
+
+        if (!loadAll) {
+            query.limit(3);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -224,17 +235,34 @@ function updateSessionsList() {
         return;
     }
 
-    sessionsListEl.innerHTML = sessions.map(session => {
+    const displaySessions = showingAllSessions ? sessions : sessions.slice(0, 3);
+
+    sessionsListEl.innerHTML = displaySessions.map(session => {
         const date = new Date(session.created_at);
         const side = session.side === 'right' ? 'ימין' : 'שמאל';
+        const sideClass = session.side === 'right' ? 'right-side' : 'left-side';
 
         return `
             <div class="session-item">
-                <div class="session-side">${side}</div>
+                <div class="session-side ${sideClass}">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
             </div>
         `;
     }).join('');
+}
+
+async function toggleAllSessions() {
+    showingAllSessions = !showingAllSessions;
+
+    if (showingAllSessions) {
+        await loadSessions(true);
+        showAllBtn.textContent = 'הצג הנקות אחרונות';
+        sessionsTitleEl.textContent = 'היסטוריה מלאה';
+    } else {
+        await loadSessions(false);
+        showAllBtn.textContent = 'הצג היסטוריה מלאה';
+        sessionsTitleEl.textContent = 'הנקות אחרונות';
+    }
 }
 
 // Shared View Functions
@@ -300,10 +328,11 @@ function updateSharedSessionsList() {
     sharedSessionsListEl.innerHTML = sharedSessions.map(session => {
         const date = new Date(session.created_at);
         const side = session.side === 'right' ? 'ימין' : 'שמאל';
+        const sideClass = session.side === 'right' ? 'right-side' : 'left-side';
 
         return `
             <div class="session-item">
-                <div class="session-side">${side}</div>
+                <div class="session-side ${sideClass}">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
             </div>
         `;
@@ -354,6 +383,18 @@ function showSharedError(title, message) {
 
     // Update info
     sharedInfoEl.textContent = 'נתונים לא זמינים';
+}
+
+function goBackToLogin() {
+    // Clear shared data
+    sharedUserId = null;
+    sharedSessions = [];
+
+    // Remove URL parameters
+    window.history.pushState({}, document.title, window.location.pathname);
+
+    // Show login screen
+    showLoginScreen();
 }
 
 // Export Functions
@@ -423,32 +464,6 @@ async function exportSharedToCSV() {
     }
 }
 
-// Sharing Functions
-function shareLog() {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?user=${currentUser.id}`;
-    shareLink.value = shareUrl;
-    shareModal.classList.remove('hidden');
-    shareModal.classList.add('show');
-}
-
-function copyShareLink() {
-    shareLink.select();
-    document.execCommand('copy');
-    alert('הקישור הועתק');
-}
-
-function goBackToLogin() {
-    // Clear shared data
-    sharedUserId = null;
-    sharedSessions = [];
-
-    // Remove URL parameters
-    window.history.pushState({}, document.title, window.location.pathname);
-
-    // Show login screen
-    showLoginScreen();
-}
-
 // Event Listeners
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -487,21 +502,6 @@ backToLoginBtn.addEventListener('click', goBackToLogin);
 leftBtn.addEventListener('click', () => recordFeeding('left'));
 rightBtn.addEventListener('click', () => recordFeeding('right'));
 
-shareBtn.addEventListener('click', shareLog);
+showAllBtn.addEventListener('click', toggleAllSessions);
 exportBtn.addEventListener('click', exportToCSV);
-exportSharedBtn.addEventListener('click', exportSharedToCSV);
-
-copyLinkBtn.addEventListener('click', copyShareLink);
-
-closeModal.addEventListener('click', () => {
-    shareModal.classList.add('hidden');
-    shareModal.classList.remove('show');
-});
-
-// Close modal when clicking outside
-window.addEventListener('click', (e) => {
-    if (e.target === shareModal) {
-        shareModal.classList.add('hidden');
-        shareModal.classList.remove('show');
-    }
-}); 
+exportSharedBtn.addEventListener('click', exportSharedToCSV); 

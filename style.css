@@ -143,12 +143,12 @@ header h1 {
 }
 
 .feeding-btn.left {
-    background: linear-gradient(135deg, #4caf50, #45a049);
+    background: linear-gradient(135deg, #9c27b0, #7b1fa2);
     color: white;
 }
 
 .feeding-btn.left:hover {
-    background: linear-gradient(135deg, #45a049, #3d8b40);
+    background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
@@ -204,8 +204,15 @@ header h1 {
 
 .session-side {
     font-weight: bold;
-    color: #667eea;
     margin-bottom: 5px;
+}
+
+.session-side.left-side {
+    color: #9c27b0;
+}
+
+.session-side.right-side {
+    color: #2196f3;
 }
 
 .session-time {
