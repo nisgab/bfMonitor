@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מוניטור הנקה - דמו</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Demo Notice -->
+        <div class="demo-notice">
+            <p>זוהי גרסת דמו - הנתונים נשמרים באופן מקומי במכשיר שלך</p>
+        </div>
+
+        <!-- Main App Screen (Demo version shows main screen directly) -->
+        <div id="main-screen" class="screen">
+            <header>
+                <h1>מוניטור הנקה - דמו</h1>
+                <button id="clear-data-btn" class="logout-btn">נקה נתונים</button>
+            </header>
+
+            <main>
+                <!-- Timer Section -->
+                <div class="timer-section">
+                    <h2>הנקה נוכחית</h2>
+                    <div class="side-selection">
+                        <label>
+                            <input type="radio" name="side" value="right" checked>
+                            <span class="side-btn">ימין</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="side" value="left">
+                            <span class="side-btn">שמאל</span>
+                        </label>
+                    </div>
+
+                    <div class="timer-display">
+                        <div id="timer">00:00:00</div>
+                        <div class="timer-controls">
+                            <button id="start-btn" class="timer-btn start">התחל</button>
+                            <button id="stop-btn" class="timer-btn stop hidden">עצור</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Sessions -->
+                <div class="recent-sessions">
+                    <h2>הנקות אחרונות</h2>
+                    <div id="sessions-list" class="sessions-list">
+                        <div class="no-sessions">אין הנקות עדיין</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="share-btn" class="action-btn">שתף יומן</button>
+                    <button id="export-btn" class="action-btn">ייצא CSV</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- Share Modal -->
+        <div id="share-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>שתף יומן הנקה</h2>
+                <p>בגרסה המלאה תוכל לשתף את יומן ההנקה עם אחרים</p>
+                <div class="demo-message">
+                    <p>גרסת דמו - שיתוף לא זמין</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo Version - Uses localStorage instead of Supabase
+
+        // Global Variables
+        let timer = null;
+        let startTime = null;
+        let elapsedTime = 0;
+        let isRunning = false;
+        let sessions = [];
+
+        // DOM Elements
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const timerDisplay = document.getElementById('timer');
+        const sessionsListEl = document.getElementById('sessions-list');
+        const shareBtn = document.getElementById('share-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const shareModal = document.getElementById('share-modal');
+        const closeModal = document.querySelector('.close');
+        const clearDataBtn = document.getElementById('clear-data-btn');
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessions();
+            updateTimerDisplay();
+        });
+
+        // Timer Functions
+        function startTimer() {
+            if (!isRunning) {
+                startTime = Date.now() - elapsedTime;
+                isRunning = true;
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+
+                timer = setInterval(() => {
+                    elapsedTime = Date.now() - startTime;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        function stopTimer() {
+            if (isRunning) {
+                clearInterval(timer);
+                isRunning = false;
+                startBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+
+                // Save session
+                saveSession();
+
+                // Reset timer
+                elapsedTime = 0;
+                updateTimerDisplay();
+            }
+        }
+
+        function updateTimerDisplay() {
+            const totalSeconds = Math.floor(elapsedTime / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            timerDisplay.textContent =
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Session Management Functions
+        function saveSession() {
+            const selectedSide = document.querySelector('input[name="side"]:checked').value;
+            const duration = Math.floor(elapsedTime / 1000);
+
+            const session = {
+                id: Date.now(),
+                side: selectedSide,
+                duration: duration,
+                start_time: new Date(startTime).toISOString(),
+                created_at: new Date().toISOString()
+            };
+
+            sessions.unshift(session);
+
+            // Keep only last 10 sessions
+            sessions = sessions.slice(0, 10);
+
+            // Save to localStorage
+            localStorage.setItem('feedingSessions', JSON.stringify(sessions));
+
+            updateSessionsList();
+        }
+
+        function loadSessions() {
+            const savedSessions = localStorage.getItem('feedingSessions');
+            if (savedSessions) {
+                sessions = JSON.parse(savedSessions);
+            }
+            updateSessionsList();
+        }
+
+        function updateSessionsList() {
+            if (sessions.length === 0) {
+                sessionsListEl.innerHTML = '<div class="no-sessions">אין הנקות עדיין</div>';
+                return;
+            }
+
+            const recentSessions = sessions.slice(0, 3);
+            sessionsListEl.innerHTML = recentSessions.map(session => {
+                const date = new Date(session.created_at);
+                const side = session.side === 'right' ? 'ימין' : 'שמאל';
+                const duration = formatDuration(session.duration);
+
+                return `
+                    <div class="session-item">
+                        <div class="session-side">${side}</div>
+                        <div class="session-time">${date.toLocaleString('he-IL')}</div>
+                        <div class="session-duration">${duration}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const remainingSeconds = seconds % 60;
+
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Export Functions
+        function exportToCSV() {
+            if (sessions.length === 0) {
+                alert('אין נתונים לייצוא');
+                return;
+            }
+
+            const csvHeaders = ['תאריך', 'צד', 'משך (דקות)', 'זמן התחלה'];
+            const csvData = sessions.map(session => [
+                new Date(session.created_at).toLocaleDateString('he-IL'),
+                session.side === 'right' ? 'ימין' : 'שמאל',
+                Math.floor(session.duration / 60),
+                new Date(session.start_time).toLocaleTimeString('he-IL')
+            ]);
+
+            const csvContent = [csvHeaders, ...csvData]
+                .map(row => row.join(','))
+                .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `feeding_log_demo_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // Clear all data
+        function clearAllData() {
+            if (confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים?')) {
+                localStorage.removeItem('feedingSessions');
+                sessions = [];
+                updateSessionsList();
+                alert('הנתונים נמחקו');
+            }
+        }
+
+        // Event Listeners
+        startBtn.addEventListener('click', startTimer);
+        stopBtn.addEventListener('click', stopTimer);
+        exportBtn.addEventListener('click', exportToCSV);
+        clearDataBtn.addEventListener('click', clearAllData);
+
+        shareBtn.addEventListener('click', () => {
+            shareModal.classList.remove('hidden');
+            shareModal.classList.add('show');
+        });
+
+        closeModal.addEventListener('click', () => {
+            shareModal.classList.add('hidden');
+            shareModal.classList.remove('show');
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === shareModal) {
+                shareModal.classList.add('hidden');
+                shareModal.classList.remove('show');
+            }
+        });
+    </script>
+
+    <style>
+        .demo-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #856404;
+        }
+
+        .demo-message {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            color: #6c757d;
+            margin-top: 15px;
+        }
+    </style>
+</body>
+
+</html>

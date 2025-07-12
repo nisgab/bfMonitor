@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מוניטור הנקה</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen">
+            <div class="login-container">
+                <h1>מוניטור הנקה</h1>
+                <form id="login-form">
+                    <input type="email" id="email" placeholder="כתובת אימייל" required>
+                    <input type="password" id="password" placeholder="סיסמה" required>
+                    <button type="submit">התחבר</button>
+                </form>
+                <div class="auth-toggle">
+                    <p>אין לך חשבון? <a href="#" id="show-signup">הרשמה</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signup Screen -->
+        <div id="signup-screen" class="screen hidden">
+            <div class="login-container">
+                <h1>הרשמה</h1>
+                <form id="signup-form">
+                    <input type="email" id="signup-email" placeholder="כתובת אימייל" required>
+                    <input type="password" id="signup-password" placeholder="סיסמה" required>
+                    <input type="password" id="signup-confirm-password" placeholder="אישור סיסמה" required>
+                    <button type="submit">הרשמה</button>
+                </form>
+                <div class="auth-toggle">
+                    <p>יש לך חשבון? <a href="#" id="show-login">התחבר</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Screen -->
+        <div id="main-screen" class="screen hidden">
+            <header>
+                <h1>מוניטור הנקה</h1>
+                <button id="logout-btn" class="logout-btn">התנתק</button>
+            </header>
+
+            <main>
+                <!-- Timer Section -->
+                <div class="timer-section">
+                    <h2>הנקה נוכחית</h2>
+                    <div class="side-selection">
+                        <label>
+                            <input type="radio" name="side" value="right" checked>
+                            <span class="side-btn">ימין</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="side" value="left">
+                            <span class="side-btn">שמאל</span>
+                        </label>
+                    </div>
+
+                    <div class="timer-display">
+                        <div id="timer">00:00:00</div>
+                        <div class="timer-controls">
+                            <button id="start-btn" class="timer-btn start">התחל</button>
+                            <button id="stop-btn" class="timer-btn stop hidden">עצור</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Sessions -->
+                <div class="recent-sessions">
+                    <h2>הנקות אחרונות</h2>
+                    <div id="sessions-list" class="sessions-list">
+                        <div class="no-sessions">אין הנקות עדיין</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="share-btn" class="action-btn">שתף יומן</button>
+                    <button id="export-btn" class="action-btn">ייצא CSV</button>
+                </div>
+            </main>
+        </div>
+
+        <!-- Share Modal -->
+        <div id="share-modal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>שתף יומן הנקה</h2>
+                <p>העתק את הקישור הבא כדי לשתף את יומן הההנקה שלך:</p>
+                <div class="share-link-container">
+                    <input type="text" id="share-link" readonly>
+                    <button id="copy-link-btn">העתק</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
