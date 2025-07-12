@@ -89,6 +89,54 @@
             </main>
         </div>
 
+        <!-- Shared Log View Screen -->
+        <div id="shared-screen" class="screen hidden">
+            <header>
+                <h1>יומן הנקה משותף</h1>
+                <button id="back-to-login-btn" class="logout-btn">התחבר לחשבון שלי</button>
+            </header>
+
+            <main>
+                <!-- Shared Notice -->
+                <div class="shared-notice">
+                    <p>🔗 צופה ביומן הנקה משותף</p>
+                    <p id="shared-info">נטען...</p>
+                </div>
+
+                <!-- Shared Sessions -->
+                <div class="recent-sessions">
+                    <h2>הנקות משותפות</h2>
+                    <div id="shared-sessions-list" class="sessions-list">
+                        <div class="loading">טוען נתונים...</div>
+                    </div>
+                </div>
+
+                <!-- Shared Statistics -->
+                <div class="shared-stats">
+                    <h2>סטטיסטיקות</h2>
+                    <div id="stats-container" class="stats-container">
+                        <div class="stat-item">
+                            <span class="stat-label">סה"כ הנקות:</span>
+                            <span id="total-sessions" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">סה"כ זמן:</span>
+                            <span id="total-duration" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">הנקה אחרונה:</span>
+                            <span id="last-session" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Share Actions -->
+                <div class="action-buttons">
+                    <button id="export-shared-btn" class="action-btn">ייצא CSV</button>
+                </div>
+            </main>
+        </div>
+
         <!-- Share Modal -->
         <div id="share-modal" class="modal hidden">
             <div class="modal-content">
@@ -98,6 +146,9 @@
                 <div class="share-link-container">
                     <input type="text" id="share-link" readonly>
                     <button id="copy-link-btn">העתק</button>
+                </div>
+                <div class="share-info">
+                    <p><strong>חשוב:</strong> הקישור מאפשר צפייה ב-10 ההנקות האחרונות שלך</p>
                 </div>
             </div>
         </div>

@@ -12,30 +12,50 @@ let elapsedTime = 0;
 let isRunning = false;
 let currentUser = null;
 let sessions = [];
+let sharedUserId = null;
+let sharedSessions = [];
 
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
 const signupScreen = document.getElementById('signup-screen');
 const mainScreen = document.getElementById('main-screen');
+const sharedScreen = document.getElementById('shared-screen');
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const showSignupBtn = document.getElementById('show-signup');
 const showLoginBtn = document.getElementById('show-login');
 const logoutBtn = document.getElementById('logout-btn');
+const backToLoginBtn = document.getElementById('back-to-login-btn');
 const startBtn = document.getElementById('start-btn');
 const stopBtn = document.getElementById('stop-btn');
 const timerDisplay = document.getElementById('timer');
 const sideRadios = document.querySelectorAll('input[name="side"]');
 const sessionsListEl = document.getElementById('sessions-list');
+const sharedSessionsListEl = document.getElementById('shared-sessions-list');
 const shareBtn = document.getElementById('share-btn');
 const exportBtn = document.getElementById('export-btn');
+const exportSharedBtn = document.getElementById('export-shared-btn');
 const shareModal = document.getElementById('share-modal');
 const shareLink = document.getElementById('share-link');
 const copyLinkBtn = document.getElementById('copy-link-btn');
 const closeModal = document.querySelector('.close');
+const sharedInfoEl = document.getElementById('shared-info');
+const totalSessionsEl = document.getElementById('total-sessions');
+const totalDurationEl = document.getElementById('total-duration');
+const lastSessionEl = document.getElementById('last-session');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check for shared link
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedUser = urlParams.get('user');
+
+    if (sharedUser) {
+        sharedUserId = sharedUser;
+        await loadSharedView();
+        return;
+    }
+
     // Check if user is already logged in
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (user) {
@@ -99,18 +119,28 @@ function showLoginScreen() {
     loginScreen.classList.remove('hidden');
     signupScreen.classList.add('hidden');
     mainScreen.classList.add('hidden');
+    sharedScreen.classList.add('hidden');
 }
 
 function showSignupScreen() {
     loginScreen.classList.add('hidden');
     signupScreen.classList.remove('hidden');
     mainScreen.classList.add('hidden');
+    sharedScreen.classList.add('hidden');
 }
 
 function showMainScreen() {
     loginScreen.classList.add('hidden');
     signupScreen.classList.add('hidden');
     mainScreen.classList.remove('hidden');
+    sharedScreen.classList.add('hidden');
+}
+
+function showSharedScreen() {
+    loginScreen.classList.add('hidden');
+    signupScreen.classList.add('hidden');
+    mainScreen.classList.add('hidden');
+    sharedScreen.classList.remove('hidden');
 }
 
 // Timer Functions
@@ -222,16 +252,103 @@ function updateSessionsList() {
     }).join('');
 }
 
-function formatDuration(seconds) {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
+// Shared View Functions
+async function loadSharedView() {
+    try {
+        showSharedScreen();
 
-    if (hours > 0) {
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    } else {
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        // Load shared sessions (last 10 sessions)
+        const { data: sessionsData, error: sessionsError } = await supabaseClient
+            .from('feeding_sessions')
+            .select('*')
+            .eq('user_id', sharedUserId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (sessionsError) throw sessionsError;
+
+        if (!sessionsData || sessionsData.length === 0) {
+            showSharedError('לא נמצאו נתונים', 'המשתמש לא קיים או שלא בוצעו הנקות עדיין');
+            return;
+        }
+
+        sharedSessions = sessionsData;
+        updateSharedSessionsList();
+        updateSharedStats();
+        updateSharedInfo();
+
+    } catch (error) {
+        console.error('Error loading shared view:', error);
+        showSharedError('שגיאה בטעינת הנתונים', error.message);
     }
+}
+
+function updateSharedSessionsList() {
+    if (sharedSessions.length === 0) {
+        sharedSessionsListEl.innerHTML = '<div class="no-sessions">אין הנקות לתצוגה</div>';
+        return;
+    }
+
+    sharedSessionsListEl.innerHTML = sharedSessions.map(session => {
+        const date = new Date(session.created_at);
+        const side = session.side === 'right' ? 'ימין' : 'שמאל';
+        const duration = formatDuration(session.duration);
+
+        return `
+            <div class="session-item">
+                <div class="session-side">${side}</div>
+                <div class="session-time">${date.toLocaleString('he-IL')}</div>
+                <div class="session-duration">${duration}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateSharedStats() {
+    const totalSessions = sharedSessions.length;
+    const totalDurationSeconds = sharedSessions.reduce((sum, session) => sum + session.duration, 0);
+    const totalDurationMinutes = Math.floor(totalDurationSeconds / 60);
+    const lastSession = sharedSessions.length > 0 ? new Date(sharedSessions[0].created_at) : null;
+
+    totalSessionsEl.textContent = totalSessions;
+    totalDurationEl.textContent = totalDurationMinutes > 60 ?
+        `${Math.floor(totalDurationMinutes / 60)}:${(totalDurationMinutes % 60).toString().padStart(2, '0')} שעות` :
+        `${totalDurationMinutes} דקות`;
+    lastSessionEl.textContent = lastSession ? lastSession.toLocaleDateString('he-IL') : 'אין נתונים';
+}
+
+function updateSharedInfo() {
+    const sessionCount = sharedSessions.length;
+    const dateRange = getDateRange();
+    sharedInfoEl.textContent = `מציג ${sessionCount} הנקות אחרונות ${dateRange}`;
+}
+
+function getDateRange() {
+    if (sharedSessions.length === 0) return '';
+
+    const latest = new Date(sharedSessions[0].created_at);
+    const earliest = new Date(sharedSessions[sharedSessions.length - 1].created_at);
+
+    if (sharedSessions.length === 1) {
+        return `מ-${latest.toLocaleDateString('he-IL')}`;
+    }
+
+    return `מ-${earliest.toLocaleDateString('he-IL')} עד ${latest.toLocaleDateString('he-IL')}`;
+}
+
+function showSharedError(title, message) {
+    sharedSessionsListEl.innerHTML = `
+        <div class="error-message">
+            <h3>${title}</h3>
+            <p>${message}</p>
+        </div>
+    `;
+
+    // Disable export button
+    exportSharedBtn.disabled = true;
+
+    // Update info
+    sharedInfoEl.textContent = 'נתונים לא זמינים';
 }
 
 // Export Functions
@@ -273,6 +390,48 @@ async function exportToCSV() {
     }
 }
 
+async function exportSharedToCSV() {
+    if (!sharedSessions || sharedSessions.length === 0) {
+        alert('אין נתונים לייצוא');
+        return;
+    }
+
+    try {
+        const csvHeaders = ['תאריך', 'צד', 'משך (דקות)', 'זמן התחלה'];
+        const csvData = sharedSessions.map(session => [
+            new Date(session.created_at).toLocaleDateString('he-IL'),
+            session.side === 'right' ? 'ימין' : 'שמאל',
+            Math.floor(session.duration / 60),
+            new Date(session.start_time).toLocaleTimeString('he-IL')
+        ]);
+
+        const csvContent = [csvHeaders, ...csvData]
+            .map(row => row.join(','))
+            .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `shared_feeding_log_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+    } catch (error) {
+        console.error('Error exporting shared CSV:', error);
+        alert('שגיאה בייצוא הנתונים');
+    }
+}
+
+function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+}
+
 // Sharing Functions
 function shareLog() {
     const shareUrl = `${window.location.origin}${window.location.pathname}?user=${currentUser.id}`;
@@ -285,6 +444,18 @@ function copyShareLink() {
     shareLink.select();
     document.execCommand('copy');
     alert('הקישור הועתק');
+}
+
+function goBackToLogin() {
+    // Clear shared data
+    sharedUserId = null;
+    sharedSessions = [];
+
+    // Remove URL parameters
+    window.history.pushState({}, document.title, window.location.pathname);
+
+    // Show login screen
+    showLoginScreen();
 }
 
 // Event Listeners
@@ -320,12 +491,14 @@ showLoginBtn.addEventListener('click', (e) => {
 });
 
 logoutBtn.addEventListener('click', logout);
+backToLoginBtn.addEventListener('click', goBackToLogin);
 
 startBtn.addEventListener('click', startTimer);
 stopBtn.addEventListener('click', stopTimer);
 
 shareBtn.addEventListener('click', shareLog);
 exportBtn.addEventListener('click', exportToCSV);
+exportSharedBtn.addEventListener('click', exportSharedToCSV);
 
 copyLinkBtn.addEventListener('click', copyShareLink);
 
@@ -339,18 +512,6 @@ window.addEventListener('click', (e) => {
     if (e.target === shareModal) {
         shareModal.classList.add('hidden');
         shareModal.classList.remove('show');
-    }
-});
-
-// Handle shared links
-window.addEventListener('load', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sharedUserId = urlParams.get('user');
-
-    if (sharedUserId) {
-        // This would be implemented to show shared user's data
-        // For now, just show an alert
-        alert('צפייה ביומן משותף - תכונה זו תהיה זמינה בקרוב');
     }
 });
 

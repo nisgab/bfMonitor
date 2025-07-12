@@ -13,6 +13,7 @@
         <!-- Demo Notice -->
         <div class="demo-notice">
             <p>זוהי גרסת דמו - הנתונים נשמרים באופן מקומי במכשיר שלך</p>
+            <p>בגרסה המלאה: שיתוף יומן, אימות משתמש ושמירה בענן</p>
         </div>
 
         <!-- Main App Screen (Demo version shows main screen directly) -->
@@ -69,7 +70,14 @@
                 <h2>שתף יומן הנקה</h2>
                 <p>בגרסה המלאה תוכל לשתף את יומן ההנקה עם אחרים</p>
                 <div class="demo-message">
-                    <p>גרסת דמו - שיתוף לא זמין</p>
+                    <p><strong>תכונות הגרסה המלאה:</strong></p>
+                    <ul style="text-align: right; margin: 10px 0;">
+                        <li>שיתוף יומן עם קישור ייעודי</li>
+                        <li>צפייה ביומן משותף עם סטטיסטיקות</li>
+                        <li>אימות משתמש מאובטח</li>
+                        <li>שמירה בענן (Supabase)</li>
+                        <li>ייצוא CSV מתקדם</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -275,10 +283,14 @@
             background: #fff3cd;
             border: 1px solid #ffeaa7;
             border-radius: 8px;
-            padding: 10px;
+            padding: 15px;
             margin-bottom: 20px;
             text-align: center;
             color: #856404;
+        }
+
+        .demo-notice p {
+            margin: 5px 0;
         }
 
         .demo-message {
@@ -288,6 +300,16 @@
             text-align: center;
             color: #6c757d;
             margin-top: 15px;
+        }
+
+        .demo-message ul {
+            text-align: right;
+            list-style-type: disc;
+            padding-right: 20px;
+        }
+
+        .demo-message li {
+            margin: 5px 0;
         }
     </style>
 </body>
