@@ -232,10 +232,18 @@ async function loadSessions(loadAll = false) {
 function updateSessionsList() {
     if (sessions.length === 0) {
         sessionsListEl.innerHTML = '<div class="no-sessions">אין הנקות עדיין</div>';
+        sessionsListEl.classList.remove('scrollable');
         return;
     }
 
     const displaySessions = showingAllSessions ? sessions : sessions.slice(0, 3);
+
+    // Add scrollable class when showing all sessions
+    if (showingAllSessions) {
+        sessionsListEl.classList.add('scrollable');
+    } else {
+        sessionsListEl.classList.remove('scrollable');
+    }
 
     sessionsListEl.innerHTML = displaySessions.map(session => {
         const date = new Date(session.created_at);
@@ -243,7 +251,7 @@ function updateSessionsList() {
         const sideClass = session.side === 'right' ? 'right-side' : 'left-side';
 
         return `
-            <div class="session-item">
+            <div class="session-item ${sideClass}">
                 <div class="session-side ${sideClass}">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
             </div>
@@ -263,6 +271,9 @@ async function toggleAllSessions() {
         showAllBtn.textContent = 'הצג היסטוריה מלאה';
         sessionsTitleEl.textContent = 'הנקות אחרונות';
     }
+
+    // Scroll to top of sessions list
+    sessionsListEl.scrollTop = 0;
 }
 
 // Shared View Functions
@@ -331,7 +342,7 @@ function updateSharedSessionsList() {
         const sideClass = session.side === 'right' ? 'right-side' : 'left-side';
 
         return `
-            <div class="session-item">
+            <div class="session-item ${sideClass}">
                 <div class="session-side ${sideClass}">${side}</div>
                 <div class="session-time">${date.toLocaleString('he-IL')}</div>
             </div>
