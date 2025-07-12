@@ -128,7 +128,7 @@ header h1 {
 
 .feeding-btn {
     flex: 1;
-    padding: 20px;
+    padding: 40px 20px;
     border: none;
     border-radius: 15px;
     font-size: 18px;
